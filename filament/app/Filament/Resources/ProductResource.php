@@ -6,15 +6,12 @@ use App\Filament\Resources\ProductResource\Pages;
 use App\Filament\Resources\ProductResource\RelationManagers;
 use App\Models\Product;
 use Filament\Forms;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\Toggle;
-use Filament\Forms\Components\FileUpload;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class ProductResource extends Resource
@@ -27,28 +24,31 @@ class ProductResource extends Resource
     {
         return $form
             ->schema([
-                TextInput::make('name')
-                ->required()
-                ->label('Product Name'),
-            TextInput::make('price')
-                ->required()
-                ->numeric()
-                ->label('Price'),
-            Textarea::make('description')
-                ->label('Description'),
-            Toggle::make('status')
-                ->default(true)
-                ->label('Active'),
-            FileUpload::make('images') 
-                ->label('Product Images') 
-                ->multiple() 
-                ->preserveFilenames() 
-                ->required() 
-                ->maxSize(5 * 1024) // 5 MB
-                ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/jpg']) 
-                ->disk('public') 
-                ->directory('products/images') 
-                ->visibility('public'), 
+                Forms\Components\TextInput::make('name')
+                    ->required()
+                    ->label('Name'),
+
+                Forms\Components\TextInput::make('price')
+                    ->required()
+                    ->numeric()
+                    ->label('Price')
+                    ->prefix('$'),
+                Forms\Components\Textarea::make('description')
+                    ->label('Description')
+                    ->nullable(),
+
+                Forms\Components\Toggle::make('status')
+                    ->label('Active Status')
+                    ->default(true),
+
+                Forms\Components\FileUpload::make('image')
+                    ->image()
+                    ->label('Product Image')
+                    ->directory('products')
+                    ->acceptedFileTypes(['image/jpeg', 'image/jpg', 'image/png'])
+                    ->maxSize(5120)
+                    ->multiple()
+                    ->nullable(),
             ]);
     }
 
@@ -56,13 +56,34 @@ class ProductResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('name')->label('Product Name'),
-                Tables\Columns\TextColumn::make('price')->label('Price'),
-                Tables\Columns\BooleanColumn::make('status')->label('Active'),
-                Tables\Columns\ImageColumn::make('images')->label('Images')->disk('public'),
+                Tables\Columns\TextColumn::make('name')
+                    ->label('Name')
+                    ->sortable()
+                    ->searchable(),
+
+                Tables\Columns\TextColumn::make('price')
+                    ->label('Price')
+                    ->sortable()
+                    ->formatStateUsing(fn($state) => '$' . number_format($state, 2)), // Format the price
+
+                Tables\Columns\BooleanColumn::make('status')
+                    ->label('Status')
+                    // ->trueIcon('heroicon-o-badge-check')
+                    // ->falseIcon('heroicon-o-x-circle')
+                    ->sortable(),
+
+                Tables\Columns\ImageColumn::make('image')
+                    ->label('Image')
+                    ->circular()
+                    ->size(40),
+
+                Tables\Columns\TextColumn::make('created_at')
+                    ->label('Created')
+                    ->dateTime()
+                    ->sortable(),
             ])
             ->filters([
-                // Add any filters if necessary
+                //
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
